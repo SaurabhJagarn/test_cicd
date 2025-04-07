@@ -1,0 +1,39 @@
+flavors:
+  development:
+    app:
+      name: "test-dev"
+
+    android:
+      applicationId: "com.test.dev"
+      icon: 'assets\icons\icon.png'
+      ndkVersion: "25.1.8937393"
+    ios:
+      schema: true
+      bundleId: "com.test.dev"
+      icon: 'assets\icons\icon.png'
+      # customConfig:
+      #   versionNameSuffix: "\"-green-dev\""
+      #   namespace: "com.omh.dev"
+      #   ndkVersion: "25.1.8937393"
+      # signingConfig: flavorSigning.green
+      # versionCode: 1000
+      # minSdkVersion: 23
+  production:
+    app:
+      name: "onlyMyHealth"
+
+    android:
+      applicationId: "com.prod.com"
+      icon: 'assets\icons\icon.png'
+    ios:
+      schema: true
+      bundleId: "com.prod.com"
+      icon: 'assets\icons\icon.png'
+    customConfig:
+      versionNameSuffix: "\"-green-prod\"" # Don't forget to escape strings with \"
+      namespace: "com.prod.com"
+      ndkVersion: "25.1.8937393"
+      # signingConfig: flavorSigning.green
+      # versionCode: 1000
+      # minSdkVersion: 23
+ide: vscode
