@@ -1,0 +1,103 @@
+name: "Only"
+
+on:
+  pull_request:
+    branches:
+    - main
+    - master
+    - dev
+  push:
+    branches:
+    - main
+    - master
+    - dev
+
+jobs:
+  flutter_job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.1'
+        cache: true
+
+    - name: Verify Flutter Installation
+      run: flutter --version
+
+    - name: Cache Flutter Dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.pub-cache
+          ${{ runner.tool_cache }}/flutter
+        key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
+        restore-keys: |
+          flutter-${{ runner.os }}-
+
+    - name: Install Dependencies
+      run: |
+        flutter pub get
+        flutter clean
+
+    - name: Setup Gradle
+      run: |
+        cd android
+        if [ ! -f "./gradlew" ]; then
+          gradle wrapper
+        fi
+        cd ..
+
+    - name: Verify Flutter Dependencies
+      run: flutter doctor -v
+
+    - name: Grant Gradle Execute Permission
+      run: chmod +x android/gradlew
+
+    - name: Build Development APK
+      run: |
+        # Build the APK with error handling
+        flutter build apk --flavor development -t lib/main_development.dart --verbose || {
+          echo "Build failed"
+          exit 1
+        }
+
+        # Define APK path
+        APK_PATH="${{ github.workspace }}/build/app/outputs/apk/development/debug/app-development-debug.apk"
+
+        # List contents of outputs directory
+        echo "Listing contents of build/app/outputs:"
+        ls -la ${{ github.workspace }}/build/app/outputs/ || echo "Outputs directory not found"
+
+        # List contents of apk directory
+        echo "Listing contents of apk/development/debug:"
+        ls -la ${{ github.workspace }}/build/app/outputs/apk/development/debug/ || echo "Debug directory not found"
+
+        # Verify APK existence
+        if [ -f "${APK_PATH}" ]; then
+          echo "APK file found at: ${APK_PATH}"
+        else
+          echo "APK file not found at: ${APK_PATH}"
+          echo "Searching for any APK files:"
+          find ${{ github.workspace }}/build -name "*.apk" || echo "No APK files found"
+          exit 1
+        fi
+
+    - name: Upload APK to Firebase Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+        serviceCredentialsFileContent: ${{ secrets.SERVICE_CREDENTIALS_FILE_CONTENT }}
+        groups: all_testers
+        file: build/app/outputs/flutter-apk/app-development-release.apk
+        releaseNotes: "This is a development build"
